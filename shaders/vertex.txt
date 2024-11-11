@@ -1,0 +1,12 @@
+#version 330 core // version of GLSL
+
+layout(location = 0) in vec3 position;  // position of the attributes
+layout(location = 1) in vec3 vertexColor;
+
+out vec3 fragmentColor;
+
+void main()
+{
+    gl_Position = vec4(position, 1.0); // internal variable that holds the position of the vertex
+    fragmentColor = vertexColor;
+}
