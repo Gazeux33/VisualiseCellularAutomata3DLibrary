@@ -1,129 +1,148 @@
-from OpenGL.GL import *
+import glfw 
+import glfw.GLFW as GLFW_CONSTANTS
 import numpy as np
-from OpenGL.GL.shaders import compileProgram, compileShader
-import pyrr
+from OpenGL.GL import *
 
-from config import *
-from sim.cube import Cube,CubeMesh
-from sim.material import Material
+from sim.graphics import GraphicsEngine
+from sim.scene import Scene
+
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
+RETURN_ACTION_CONTINUE = 0
+RETURN_ACTION_END = 1
+
+def init_glfw():
+    glfw.init()
+    glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MAJOR,3)
+    glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MINOR,3)
+    glfw.window_hint(
+        GLFW_CONSTANTS.GLFW_OPENGL_PROFILE,
+        GLFW_CONSTANTS.GLFW_OPENGL_CORE_PROFILE
+    )
+    glfw.window_hint(
+        GLFW_CONSTANTS.GLFW_OPENGL_FORWARD_COMPAT,
+        GLFW_CONSTANTS.GLFW_TRUE
+    )
+    glfw.window_hint(GLFW_CONSTANTS.GLFW_DOUBLEBUFFER,GL_FALSE)
+    window = glfw.create_window(SCREEN_WIDTH,SCREEN_HEIGHT,"OpenGL Window",None,None)
+    glfw.make_context_current(window)
+    glfw.set_input_mode(window,GLFW_CONSTANTS.GLFW_CURSOR,GLFW_CONSTANTS.GLFW_CURSOR_NORMAL)
+    return window
 
 
-class Render:
-    def __init__(self):
-        self.running = True
-        self._setup_pygame()
-        self._setup_gl()
-        self._setup_shaders()
+class App:
+    def __init__(self,window):
+        self.cursor_pos = None
+        self.on_mouve = None
+        self.window = window
+        self.renderer = GraphicsEngine()
+        self.scene = Scene()
         
-        
-        # Initialisation du cube avec sa position et sa rotation
-        self.cube = Cube(position=[0, 0, -2], eulers=[0, 0, 0])
-        self.cube_mesh = CubeMesh()  # Création de la mesh du cube
-        self.texture = Material(WAVE_TEXTURE_PATH)  # Chargement de la texture du cube
+        self.lastTime = glfw.get_time()
+        self.currentTime = 0
+        self.nbFrames = 0
+        self.frameTime = 0
 
-        # Crée une matrice de projection en perspective ( Transforme la 3d en 2d pour le rendu a l'ecran)
-        projection_transform = pyrr.matrix44.create_perspective_projection(
-            fovy=45, aspect=WINDOW_SIZE[0] / WINDOW_SIZE[1],
-            near=0.1, far=10, dtype=np.float32
-        )
 
-        # Télécharge la matrice de projection sur le GPU
-        glUniformMatrix4fv(
-            glGetUniformLocation(self.shaders, "projection"),
-            1, GL_FALSE, projection_transform
-        )
-
-        # Localisation de la matrice modèle sur le GPU
-        self.modelMatrixLocation = glGetUniformLocation(self.shaders, "model")
-
-    
 
     def launch(self):
-        while self.running:
-            self._event_handler()
+        running = True
+        while running:
+            if glfw.window_should_close(self.window) or glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_ESCAPE) == GLFW_CONSTANTS.GLFW_PRESS:
+                running = False
+            self.handle_keys()
+            self.handle_mouse()
+            glfw.poll_events()
+            
+            self.scene.update(self.frameTime/16.7)
+            self.renderer.render(self.scene)
+            self.calculate_framerate()
 
-            # Rotation du cube
-            self.cube.eulers[2] += 0.2
-            if self.cube.eulers[2] > 360:
-                self.cube.eulers[2] -= 360
+    def handle_keys(self):
+        self.walk_offset_lookup = {
+            1:0,
+            2:90,
+            3:45,
+            4:180,
+            6:135,
+            7:90,
+            8:270,
+            9:315,
+            11:0,
+            12:225,
+            13:270,
+            14:180,
+        }
+        combo = 0
+        directionModifier = 0
 
-            # Efface la fenêtre
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        if glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_W) == GLFW_CONSTANTS.GLFW_PRESS:
+            combo += 1
+        if glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_A) == GLFW_CONSTANTS.GLFW_PRESS:
+            combo += 2
+        if glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_S) == GLFW_CONSTANTS.GLFW_PRESS:
+            combo += 4
+        if glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_D) == GLFW_CONSTANTS.GLFW_PRESS:
+            combo += 8
 
-            glUseProgram(self.shaders)
-            self.texture.use()
+        if combo in self.walk_offset_lookup:
+            directionModifier = self.walk_offset_lookup[combo]
+            dpos = [
+                0.1*self.frameTime/16.7 * np.cos(np.deg2rad(self.scene.player.theta + directionModifier)),
+                0.1*self.frameTime/16.7 * np.sin(np.deg2rad(self.scene.player.theta + directionModifier)),
+                0
+            ]
+            self.scene.move_player(dpos)
 
-            # Crée une matrice d'identité pour le modèle
-            model_transform = pyrr.matrix44.create_identity(dtype=np.float32)
-            # Applique la rotation à la matrice du modèle
-            model_transform = pyrr.matrix44.multiply(
-                m1=model_transform,
-                m2=pyrr.matrix44.create_from_eulers(
-                    eulers=np.radians(self.cube.eulers),
-                    dtype=np.float32
-                )
-            )
-            # Applique la translation à la matrice du modèle
-            model_transform = pyrr.matrix44.multiply(
-                m1=model_transform,
-                m2=pyrr.matrix44.create_from_translation(
-                    vec=self.cube.position,
-                    dtype=np.float32
-                )
-            )
+        # Handle vertical movement
+        if glfw.get_key(self.window, GLFW_CONSTANTS.GLFW_KEY_SPACE) == GLFW_CONSTANTS.GLFW_PRESS:
+            self.scene.move_player([0, 0, 0.1 * self.frameTime / 16.7])
+        if glfw.get_key(self.window, GLFW_CONSTANTS.GLFW_KEY_LEFT_SHIFT) == GLFW_CONSTANTS.GLFW_PRESS:
+            self.scene.move_player([0, 0, -0.1 * self.frameTime / 16.7])
 
-            # Télécharge la matrice du modèle sur le GPU
-            glUniformMatrix4fv(self.modelMatrixLocation, 1, GL_FALSE, model_transform)
-            glBindVertexArray(self.cube_mesh.vao)  # Lie le VAO du cube
-            glDrawArrays(GL_TRIANGLES, 0, self.cube_mesh.vertex_count)  # Dessine le cube
-
-            pg.display.flip()  # Échange les buffers
-            self.clock.tick(FPS)  # Limite le framerate à 60 FPS
-
-        self._quit()
-
-    def _quit(self):
-        self.cube_mesh.destroy()  # Détruit la mesh du cube
-        self.texture.destroy()  # Détruit la texture
-        glDeleteProgram(self.shaders)  # Supprime le programme de shaders
-        pg.quit()  # Quitte Pygame
-
-    @staticmethod
-    def _create_shaders(vertex_path, fragment_path):
-        with open(vertex_path, 'r') as file:
-            vertex_src = file.read()  # Lit le code source du vertex shader
-
-        with open(fragment_path, 'r') as file:
-            fragment_src = file.read()  # Lit le code source du fragment shader
-
-        # Compile les shaders et les lie ensemble dans un programme
-        shaders = compileProgram(
-            compileShader(vertex_src, GL_VERTEX_SHADER),
-            compileShader(fragment_src, GL_FRAGMENT_SHADER)
-        )
-        return shaders
+    def handle_mouse(self):
+    # Détecte si le bouton vient juste d'être pressé
+        current_button_state = glfw.get_mouse_button(self.window, GLFW_CONSTANTS.GLFW_MOUSE_BUTTON_RIGHT)
     
-    def _event_handler(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.running = False  # Sort de la boucle si on quitte la fenêtre
+        # Si on vient juste d'appuyer sur le bouton (transition de relâché à pressé)
+        if current_button_state == GLFW_CONSTANTS.GLFW_PRESS and not self.on_mouve:
+            self.on_mouve = True
+            self.cursor_pos = glfw.get_cursor_pos(self.window)
+            print("update cursor pos")
     
-    def _setup_pygame(self):
-        self.clock = pg.time.Clock()
-        # Crée la fenêtre avec les flags OPENGL et DOUBLEBUF pour double buffering
-        pg.display.set_mode(WINDOW_SIZE, pg.OPENGL | pg.DOUBLEBUF)
-        pg.display.set_caption(WINDOW_NAME)  # Définit le nom de la fenêtre
+        # Si on relâche le bouton
+        if current_button_state == GLFW_CONSTANTS.GLFW_RELEASE:
+            self.on_mouve = False
+            self.cursor_pos = None
     
-    @staticmethod
-    def _setup_gl():
-        glClearColor(*CLEAR_COLOR)  # Définit la couleur de fond
-        glEnable(GL_BLEND)  # Active le blending pour les effets de transparence
-        glEnable(GL_DEPTH_TEST)  # Active le test de profondeur pour un rendu correct des objets 3D
+        # Gestion du mouvement
+        if self.on_mouve:
+            new_x, new_y = glfw.get_cursor_pos(self.window)
+            old_x, old_y = self.cursor_pos
+    
+            sensitivity = 0.1
+            theta_increment = (old_x - new_x) * sensitivity
+            phi_increment = (old_y - new_y) * sensitivity
+    
+            self.scene.spin_player(theta_increment, phi_increment)
+            glfw.set_cursor_pos(self.window, old_x, old_y)
+            
+            
+    def calculate_framerate(self):
+        self.currentTime = glfw.get_time()
+        delta = self.currentTime - self.lastTime
+        if delta >= 1:
+            framerate = max(1,int(self.nbFrames/delta))
+            glfw.set_window_title(self.window, f"Running at {framerate} fps.")
+            self.lastTime = self.currentTime
+            self.nbFrames = -1
+            self.frameTime = float(1000.0 / max(1,framerate))
+        self.nbFrames += 1
         
-    def _setup_shaders(self):
-        # Crée et utilise les shaders
-        self.shaders = self._create_shaders("shaders/vertex.txt", "shaders/fragment.txt")
-        glUseProgram(self.shaders)
+    def quit(self):
+        self.renderer.quit()
+        
+    
 
-        # Charge le shader dans le GPU
-        glUniform1i(glGetUniformLocation(self.shaders, "imageTexture"), 0)
+    
+    
