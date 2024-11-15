@@ -1,37 +1,39 @@
+from typing import List
+
 from sim.cube import Cube
 from sim.player import Player
+from sim.utils import Position
 
 import numpy as np
 
 
 class Scene:
-    def __init__(self):
-        self.cubes = [Cube(position=[6,0,0],eulers=[0,0,0]),]
-        
-        self.player = Player(position=[0,0,2])
-        
-    def update(self,rate):
-        """
-        
-        for cube in self.cubes:
-            cube.eulers[1] += 0.25*rate
-            if cube.eulers[1] > 360:
-                cube.eulers[1] -= 360
-        """
-        
+    def __init__(self) -> None:
+        self.cubes : List[Cube] = []
+        self.player : Player = Player(Position(-6,0,0))
+
+    def add_cube(self,x:float,y:float,z:float) -> None:
+        self.cubes.append(Cube(Position(x,y,z)))
+
+    def set_player_position(self,x:float,y:float,z:float) -> None:
+        self.player.position = np.array([x,y,z],dtype=np.float32)
+
+    def update(self,rate:float) -> None:
+        pass
+
                 
-    def move_player(self,dpos):
-        dpos = np.array(dpos,dtype=np.float32)
-        self.player.position += dpos
+    def move_player(self, d_pos:List[float | int]) -> None:
+        d_pos = np.array(d_pos, dtype=np.float32)
+        self.player.position += d_pos
         
-    def spin_player(self,dtheta,dphi):
-        self.player.theta += dtheta
+    def spin_player(self,d_theta:float,d_phi:float) -> None:
+        self.player.theta += d_theta
         if self.player.theta > 360:
             self.player.theta -= 360
         if self.player.theta < 0:
             self.player.theta += 360
             
         self.player.phi = min(
-            89,max(-89,self.player.phi + dphi)
+            89,max(-89,self.player.phi + d_phi)
         )
         self.player.update_vectors()

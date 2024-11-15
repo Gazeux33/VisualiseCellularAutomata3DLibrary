@@ -1,16 +1,18 @@
+from typing import List, Tuple
+
 import numpy as np
 from OpenGL.GL import *
 
+from sim.utils import Position
+
 class Cube:
-    def __init__(self, position, eulers):
-        self.position = np.array(position, dtype=np.float32)  # Position du cube
-        self.eulers = np.array(eulers, dtype=np.float32)  # Angles d'Euler du cube (rotation)
+    def __init__(self, position:Position, eulers:Position=(0,0,0)) -> None:
+        self.position: np.ndarray  = np.array(position, dtype=np.float32)
+        self.eulers: np.ndarray  = np.array(eulers, dtype=np.float32)
 
 class CubeMesh:
-    def __init__(self):
-
-        # Coordonnées des sommets du cube (x, y, z) et coordonnées de texture (s, t)
-        vertices = (-0.5, -0.5, -0.5, 0, 0,
+    def __init__(self) -> None:
+        vertices:Tuple= (-0.5, -0.5, -0.5, 0, 0,
                     0.5, -0.5, -0.5, 1, 0,
                     0.5,  0.5, -0.5, 1, 1,
                     0.5,  0.5, -0.5, 1, 1,
@@ -46,21 +48,21 @@ class CubeMesh:
                     0.5,  0.5,  0.5, 1, 0,
                     -0.5,  0.5,  0.5, 0, 0,
                     -0.5,  0.5, -0.5, 0, 1)
-        self.vertex_count = len(vertices) // 5  # Compte le nombre de sommets
-        self.verticles = np.array(vertices, dtype=np.float32)  # Convertit les sommets en array numpy
+        self.vertex_count:int = len(vertices) // 5
+        self.vertices: np.ndarray = np.array(vertices, dtype=np.float32)
 
-        self.vao = glGenVertexArrays(1)  # Génère un objet Vertex Array Object
-        glBindVertexArray(self.vao)  # Lie le VAO créé pour qu'il soit utilisé pour les opérations suivantes
-        self.vbo = glGenBuffers(1)  # Génère un objet Vertex Buffer Object
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)  # Lie le VBO créé pour qu'il soit utilisé pour les opérations suivantes
-        glBufferData(GL_ARRAY_BUFFER, self.verticles.nbytes, self.verticles, GL_STATIC_DRAW)  # Remplit le VBO avec les données des sommets
+        self.vao = glGenVertexArrays(1) 
+        glBindVertexArray(self.vao)  
+        self.vbo = glGenBuffers(1)  
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)  
+        glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)  
 
-        glEnableVertexAttribArray(0)  # Active l'attribut de sommet à l'emplacement 0 (les positions des sommets)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(0))  # Spécifie la disposition des coordonnées des sommets
+        glEnableVertexAttribArray(0)  
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(0))  
 
-        glEnableVertexAttribArray(1)  # Active l'attribut de sommet à l'emplacement 1 (les coordonnées de texture)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(12))  # Spécifie la disposition des coordonnées de texture
+        glEnableVertexAttribArray(1) 
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(12))  
 
-    def destroy(self):
-        glDeleteVertexArrays(1, self.vao)  # Supprime le VAO
-        glDeleteBuffers(1, self.vbo)  # Supprime le VBO
+    def destroy(self) -> None:
+        glDeleteVertexArrays(1, self.vao)  
+        glDeleteBuffers(1, self.vbo)  
