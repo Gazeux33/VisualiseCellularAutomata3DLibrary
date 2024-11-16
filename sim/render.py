@@ -105,6 +105,8 @@ class BaseApp(ABC):
             self.lastTime = self.currentTime
             self.nbFrames = -1
             self.frameTime = float(1000.0 / max(1,framerate))
+            glfw.set_window_title(self.window, f"{self.window_title} - {framerate} FPS")
+
         self.nbFrames += 1
         
     def quit(self)-> None:
@@ -129,10 +131,11 @@ class BaseApp(ABC):
         return window
 
     def set_window_title(self,title:str) -> None:
+        self.window_title = title
         glfw.set_window_title(self.window, title)
 
-    def _get_window_size(self) -> Tuple[int, int]:
-        return glfw.get_window_size(self.window)
+    def get_window_size(self) -> WindowSize:
+        return WindowSize(*glfw.get_window_size(self.window))
 
     def set_window_size(self, size: WindowSize) -> None:
         self.window_size = size
