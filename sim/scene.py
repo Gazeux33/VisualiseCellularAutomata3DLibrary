@@ -8,9 +8,9 @@ import numpy as np
 
 
 class Scene:
-    def __init__(self) -> None:
+    def __init__(self,position_player=Position(-6,0,0)) -> None:
         self.cubes : List[Cube] = []
-        self.player : Player = Player(Position(-6,0,0))
+        self.player : Player = Player(position_player)
 
     def add_cube(self,x:float,y:float,z:float) -> None:
         self.cubes.append(Cube(Position(x,y,z)))
@@ -37,3 +37,6 @@ class Scene:
             89,max(-89,self.player.phi + d_phi)
         )
         self.player.update_vectors()
+
+    def delete_all_cubes(self) -> None:
+        self.cubes = []

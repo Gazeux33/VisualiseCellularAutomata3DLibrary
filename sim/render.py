@@ -18,6 +18,8 @@ class BaseApp(ABC):
         self.cursor_pos = None
         self.on_move = None
         self.window = self._init_glfw()
+
+
         self.renderer = GraphicsEngine(self.window_size)
         self.scene = Scene()
 
@@ -27,6 +29,9 @@ class BaseApp(ABC):
         self.frameTime = 0
 
         glfw.set_window_size_callback(self.window, self._on_window_size_change)
+        glfw.set_key_callback(self.window, self._on_key_event)
+        self.key_callbacks = {}
+
 
 
 
@@ -153,6 +158,12 @@ class BaseApp(ABC):
         glViewport(0, 0, width, height)
         self.renderer.update_projection_matrix(width, height)
 
+    def add_event_key_callback(self, callback: callable, key: int) -> None:
+        self.key_callbacks[key] = callback
+
+    def _on_key_event(self, window, key, scancode, action, mods) -> None:
+        if action == GLFW_CONSTANTS.GLFW_PRESS and key in self.key_callbacks:
+            self.key_callbacks[key]()
 
 
 

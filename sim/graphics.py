@@ -15,7 +15,11 @@ class GraphicsEngine:
     def __init__(self, window_size: WindowSize, clear_color: Color = (0.1, 0.1, 0.2, 1)) -> None:
         self.window_size = window_size
         self.cube_mesh: CubeMesh = CubeMesh()
-        self.wave_texture: Material = Material("textures/wave.png")
+        self.wave_texture: Material = Material("textures/pastel.png")
+
+        self.near = 0.1
+        self.far = 100
+        self.fov = 90
 
         glClearColor(*clear_color)
         self.shaders = self._create_shaders("shaders/vertex.txt", "shaders/fragment.txt")
@@ -32,13 +36,13 @@ class GraphicsEngine:
 
         self.modelMatrixLocation = glGetUniformLocation(self.shaders, "model")
         self.viewMatrixLocation = glGetUniformLocation(self.shaders, "view")
-        
+
     def render(self,scene:Scene):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glUseProgram(self.shaders)
 
         view_transform = pyrr.matrix44.create_look_at(
-            eye = scene.player.position, 
+            eye = scene.player.position,
             target=scene.player.position+scene.player.forwards,
             up = scene.player.up,
             dtype=np.float32)
@@ -87,7 +91,7 @@ class GraphicsEngine:
         return shaders
 
     @staticmethod
-    def set_clear_color(color:Color):
+    def set_clear_color(color:Color)->None:
         glClearColor(*color)
 
 
@@ -98,12 +102,24 @@ class GraphicsEngine:
     def _update_projection_matrix(self, width: int, height: int) -> None:
         aspect_ratio = width / height
         projection_transform = pyrr.matrix44.create_perspective_projection(
-            fovy=90, aspect=aspect_ratio,
-            near=0.1, far=1000, dtype=np.float32
+            fovy=self.fov, aspect=aspect_ratio,
+            near=self.near, far=self.far, dtype=np.float32
         )
         glUniformMatrix4fv(
             self.projectionMatrixLocation,
             1, GL_FALSE, projection_transform
         )
+
+    def set_near(self,near:float)->None:
+        self.near = near
+        self._update_projection_matrix(self.window_size.width,self.window_size.height)
+
+    def set_far(self,far:float)->None:
+        self.far = far
+        self._update_projection_matrix(self.window_size.width,self.window_size.height)
+
+    def set_fov(self,fov:float)->None:
+        self.fov = fov
+        self._update_projection_matrix(self.window_size.width,self.window_size.height)
 
 
