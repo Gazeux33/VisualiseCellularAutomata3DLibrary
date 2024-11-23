@@ -1,7 +1,9 @@
 # 3D visualisation Library for Cellular Automata
 
+This project consists of a library designed for the visualisation of cellular automata, created in Python and using OpenGL. This library allows users to simulate and visualise various cellular automata behaviours in an interactive graphical environment. By taking advantage of OpenGL's rendering capabilities, your tool offers a fluid and detailed visual experience, making it easier to understand and analyse complex cellular automata models.
 
-# Example of Using the Library ( see examples folder for more examples): 
+
+## Example of Using the Library ( see examples folder for more examples): 
 
 
 
@@ -52,11 +54,11 @@ g = PerlinNoiseVisualisation()
 g.launch()
 ```
 
-![Perlin noise](#)
+![Perlin noise](https://github.com/Gazeux33/VisualiseCellularAutomata3DLibrary/blob/master/assets/noise1.png)
 
 
 
-# Techical Details
+## Techical Details
 
  * **Instance Rendering** : Renders multiple instances of an object with a single draw call to improve performance
  * **Shaders (Vertex and Fragment)**: Programs on the GPU that process vertices and pixels to define the visual output.
