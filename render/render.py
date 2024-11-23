@@ -66,7 +66,7 @@ class BaseApp(ABC):
 
         if combo in walk_offset_lookup:
             directionModifier = walk_offset_lookup[combo]
-            speed = PLAYER_SPEED  # Vitesse du joueur (unités par seconde)
+            speed = PLAYER_SPEED
             d_pos = [
                 speed * self.deltaTime * np.cos(
                     np.deg2rad(self.scene.player.theta + directionModifier)),
@@ -76,8 +76,7 @@ class BaseApp(ABC):
             ]
             self.scene.move_player(d_pos)
 
-        # Mouvement vertical
-        vertical_speed = PLAYER_SPEED  # Vitesse verticale
+        vertical_speed = PLAYER_SPEED
         vertical_moves = {
             GLFW_CONSTANTS.GLFW_KEY_SPACE: [0, 0, vertical_speed * self.deltaTime],
             GLFW_CONSTANTS.GLFW_KEY_LEFT_SHIFT: [0, 0, -vertical_speed * self.deltaTime]
@@ -144,7 +143,7 @@ class BaseApp(ABC):
             raise Exception("Failed to create GLFW window")
         glfw.make_context_current(window)
         glfw.set_input_mode(window, GLFW_CONSTANTS.GLFW_CURSOR, GLFW_CONSTANTS.GLFW_CURSOR_NORMAL)
-        glfw.swap_interval(0)  # Désactiver V-Sync
+        glfw.swap_interval(0)
         return window
 
     def set_window_title(self, title: str) -> None:

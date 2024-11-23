@@ -31,15 +31,12 @@ class GraphicsEngine:
         glEnable(GL_BLEND)
         glEnable(GL_DEPTH_TEST)
 
-        # Stocker l'emplacement de la matrice de projection
         self.projectionMatrixLocation = glGetUniformLocation(self.shaders, "projection")
 
-        # Initialiser la matrice de projection
         self._update_projection_matrix(window_size.width, window_size.height)
 
         self.viewMatrixLocation = glGetUniformLocation(self.shaders, "view")
 
-        # Compteur d'instances
         self.instance_count = 0
 
         self.textures = {}
@@ -59,14 +56,11 @@ class GraphicsEngine:
         glBindVertexArray(self.cube_mesh.vao)
 
         for texture_name, instance_data in self.instance_data_per_texture.items():
-            # Utiliser la texture appropriée
             texture = self.get_texture(texture_name)
             texture.use()
 
-            # Mettre à jour les données d'instance
             self.cube_mesh.update_instance_data(instance_data)
 
-            # Dessiner les cubes
             instance_count = len(instance_data)
             glDrawArraysInstanced(GL_TRIANGLES, 0, self.cube_mesh.vertex_count, instance_count)
 
@@ -77,7 +71,6 @@ class GraphicsEngine:
         return self.textures[texture_name]
 
     def update_instance_buffer(self, cubes: List[Cube]) -> None:
-        # Regrouper les cubes par texture
         self.cubes_by_texture = {}
         for cube in cubes:
             texture_name = cube.texture_name
@@ -110,9 +103,9 @@ class GraphicsEngine:
             self.instance_data_per_texture[texture_name] = instance_data
 
     def quit(self) -> None:
-        self.cube_mesh.destroy()  # Détruit la mesh du cube
-        self.wave_texture.destroy()  # Détruit la texture
-        glDeleteProgram(self.shaders)  # Supprime le programme de shaders
+        self.cube_mesh.destroy()
+        self.wave_texture.destroy()
+        glDeleteProgram(self.shaders)
 
     @staticmethod
     def _create_shaders(vertex_path: str, fragment_path: str) -> ShaderProgram:

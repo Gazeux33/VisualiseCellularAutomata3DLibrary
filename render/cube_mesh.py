@@ -49,25 +49,20 @@ class CubeMesh:
         self.vao = glGenVertexArrays(1)
         glBindVertexArray(self.vao)
 
-        # VBO pour les données de vertex
         self.vbo = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
 
-        # Attributs des vertex
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(0))
 
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(12))
 
-        # VBO pour les données d'instance (matrices de modèle)
         self.instanceVBO = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.instanceVBO)
-        # Nous initialiserons les données plus tard
 
-        # Attributs par instance (matrices de modèle)
-        stride = 64  # 4 matrices de 4 floats (16 floats * 4 bytes)
+        stride = 64
         for i in range(4):
             glEnableVertexAttribArray(2 + i)
             glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(16 * i))
