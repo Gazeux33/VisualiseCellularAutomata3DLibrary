@@ -1,10 +1,10 @@
-
-from sim.landscape import LandScape
-
-
+from example.noise import PerlinNoiseVisualisation
+from example.conway_game import ConwayGame
+from example.brians_brain import BriansBrainGame
 
 
 
 if __name__ == "__main__":
-    r =LandScape()
-    r.launch()
+    #PerlinNoiseVisualisation().launch()
+    #ConwayGame().launch()
+    BriansBrainGame().launch()

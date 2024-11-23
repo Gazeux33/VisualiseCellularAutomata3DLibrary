@@ -1,0 +1,6 @@
+
+
+PLAYER_SPEED = 30
+NEAR = 0.1
+FAR = 1000
+FOV = 90

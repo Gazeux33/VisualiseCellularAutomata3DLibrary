@@ -1,24 +1,25 @@
-from typing import Tuple, Any
-from abc import ABC,abstractmethod
+from abc import ABC, abstractmethod
+from typing import Any
 
-import glfw
+from OpenGL.GL import *
 import glfw.GLFW as GLFW_CONSTANTS
 import numpy as np
-from OpenGL.GL import *
+import glfw
 
-from sim.graphics import GraphicsEngine
-from sim.scene import Scene
-from sim.utils import WindowSize
+from render.config import PLAYER_SPEED
+from render.graphics import GraphicsEngine
+from render.scene import Scene
+from render.utils import WindowSize
+
 
 
 class BaseApp(ABC):
-    def __init__(self,window_name:str="OpenGL" , window_size=WindowSize(640,480)) -> None:
+    def __init__(self, window_name: str = "OpenGL", window_size=WindowSize(640, 480)) -> None:
         self.window_title = window_name
         self.window_size = window_size
         self.cursor_pos = None
         self.on_move = None
         self.window = self._init_glfw()
-
 
         self.renderer = GraphicsEngine(self.window_size)
         self.scene = Scene()
@@ -28,26 +29,27 @@ class BaseApp(ABC):
         self.nbFrames = 0
         self.frameTime = 0
 
+        self.lastFrameTime = glfw.get_time()
+        self.deltaTime = 0.0
+
         glfw.set_window_size_callback(self.window, self._on_window_size_change)
         glfw.set_key_callback(self.window, self._on_key_event)
         self.key_callbacks = {}
 
-
-
-
     def launch(self) -> None:
         running = True
         while running:
-            if glfw.window_should_close(self.window) or glfw.get_key(self.window,GLFW_CONSTANTS.GLFW_KEY_ESCAPE) == GLFW_CONSTANTS.GLFW_PRESS:
+            if glfw.window_should_close(self.window) or glfw.get_key(self.window,
+                                                                     GLFW_CONSTANTS.GLFW_KEY_ESCAPE) == GLFW_CONSTANTS.GLFW_PRESS:
                 running = False
             self._handle_keys()
             self._handle_mouse()
             glfw.poll_events()
             self.update()
-            self.scene.update(self.frameTime/16.7)
+            self.scene.update(self.deltaTime)
             self.renderer.render(self.scene)
+            glfw.swap_buffers(self.window)
             self._calculate_framerate()
-
 
     @abstractmethod
     def update(self) -> None:
@@ -59,28 +61,34 @@ class BaseApp(ABC):
         }
         keys = [GLFW_CONSTANTS.GLFW_KEY_W, GLFW_CONSTANTS.GLFW_KEY_A, GLFW_CONSTANTS.GLFW_KEY_S,
                 GLFW_CONSTANTS.GLFW_KEY_D]
-        combo = sum(1 << i for i, key in enumerate(keys) if glfw.get_key(self.window, key) == GLFW_CONSTANTS.GLFW_PRESS)
+        combo = sum(1 << i for i, key in enumerate(keys) if
+                    glfw.get_key(self.window, key) == GLFW_CONSTANTS.GLFW_PRESS)
 
         if combo in walk_offset_lookup:
             directionModifier = walk_offset_lookup[combo]
+            speed = PLAYER_SPEED  # Vitesse du joueur (unités par seconde)
             d_pos = [
-                0.1 * self.frameTime / 16.7 * np.cos(np.deg2rad(self.scene.player.theta + directionModifier)),
-                0.1 * self.frameTime / 16.7 * np.sin(np.deg2rad(self.scene.player.theta + directionModifier)),
+                speed * self.deltaTime * np.cos(
+                    np.deg2rad(self.scene.player.theta + directionModifier)),
+                speed * self.deltaTime * np.sin(
+                    np.deg2rad(self.scene.player.theta + directionModifier)),
                 0
             ]
             self.scene.move_player(d_pos)
 
-        # Handle vertical movement
+        # Mouvement vertical
+        vertical_speed = PLAYER_SPEED  # Vitesse verticale
         vertical_moves = {
-            GLFW_CONSTANTS.GLFW_KEY_SPACE: [0, 0, 0.1 * self.frameTime / 16.7],
-            GLFW_CONSTANTS.GLFW_KEY_LEFT_SHIFT: [0, 0, -0.1 * self.frameTime / 16.7]
+            GLFW_CONSTANTS.GLFW_KEY_SPACE: [0, 0, vertical_speed * self.deltaTime],
+            GLFW_CONSTANTS.GLFW_KEY_LEFT_SHIFT: [0, 0, -vertical_speed * self.deltaTime]
         }
         for key, move in vertical_moves.items():
             if glfw.get_key(self.window, key) == GLFW_CONSTANTS.GLFW_PRESS:
                 self.scene.move_player(move)
 
-    def _handle_mouse(self)-> None:
-        current_button_state = glfw.get_mouse_button(self.window, GLFW_CONSTANTS.GLFW_MOUSE_BUTTON_RIGHT)
+    def _handle_mouse(self) -> None:
+        current_button_state = glfw.get_mouse_button(self.window,
+                                                     GLFW_CONSTANTS.GLFW_MOUSE_BUTTON_RIGHT)
 
         if current_button_state == GLFW_CONSTANTS.GLFW_PRESS and not self.on_move:
             self.on_move = True
@@ -93,28 +101,28 @@ class BaseApp(ABC):
         if self.on_move:
             new_x, new_y = glfw.get_cursor_pos(self.window)
             old_x, old_y = self.cursor_pos
-    
+
             sensitivity = 0.1
             theta_increment = (old_x - new_x) * sensitivity
             phi_increment = (old_y - new_y) * sensitivity
-    
+
             self.scene.spin_player(theta_increment, phi_increment)
             glfw.set_cursor_pos(self.window, old_x, old_y)
-            
-            
-    def _calculate_framerate(self)-> None:
+
+    def _calculate_framerate(self) -> None:
         self.currentTime = glfw.get_time()
-        delta = self.currentTime - self.lastTime
-        if delta >= 1:
-            framerate = max(1,int(self.nbFrames/delta))
-            self.lastTime = self.currentTime
-            self.nbFrames = -1
-            self.frameTime = float(1000.0 / max(1,framerate))
-            glfw.set_window_title(self.window, f"{self.window_title} - {framerate} FPS")
+        self.deltaTime = self.currentTime - self.lastFrameTime
+        self.lastFrameTime = self.currentTime
 
         self.nbFrames += 1
-        
-    def quit(self)-> None:
+        delta = self.currentTime - self.lastTime
+        if delta >= 1:
+            framerate = max(1, int(self.nbFrames / delta))
+            self.lastTime = self.currentTime
+            self.nbFrames = 0
+            glfw.set_window_title(self.window, f"{self.window_title} - {framerate} FPS")
+
+    def quit(self) -> None:
         self.renderer.quit()
 
     def _init_glfw(self) -> Any:
@@ -129,13 +137,17 @@ class BaseApp(ABC):
             GLFW_CONSTANTS.GLFW_OPENGL_FORWARD_COMPAT,
             GLFW_CONSTANTS.GLFW_TRUE
         )
-        glfw.window_hint(GLFW_CONSTANTS.GLFW_DOUBLEBUFFER, GL_FALSE)
-        window = glfw.create_window(self.window_size[0], self.window_size[1], self.window_title , None, None)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_DOUBLEBUFFER, GL_TRUE)
+        window = glfw.create_window(self.window_size[0], self.window_size[1], self.window_title, None, None)
+        if not window:
+            glfw.terminate()
+            raise Exception("Failed to create GLFW window")
         glfw.make_context_current(window)
         glfw.set_input_mode(window, GLFW_CONSTANTS.GLFW_CURSOR, GLFW_CONSTANTS.GLFW_CURSOR_NORMAL)
+        glfw.swap_interval(0)  # Désactiver V-Sync
         return window
 
-    def set_window_title(self,title:str) -> None:
+    def set_window_title(self, title: str) -> None:
         self.window_title = title
         glfw.set_window_title(self.window, title)
 
@@ -150,8 +162,7 @@ class BaseApp(ABC):
         window_pos_x = (video_mode.size.width - size.width) // 2
         window_pos_y = (video_mode.size.height - size.height) // 2
         glfw.set_window_pos(self.window, window_pos_x, window_pos_y)
-        self._on_window_size_change(self.window,size.width,size.height)
-
+        self._on_window_size_change(self.window, size.width, size.height)
 
     def _on_window_size_change(self, window, width: int, height: int) -> None:
         self.window_size = WindowSize(width, height)
@@ -164,14 +175,3 @@ class BaseApp(ABC):
     def _on_key_event(self, window, key, scancode, action, mods) -> None:
         if action == GLFW_CONSTANTS.GLFW_PRESS and key in self.key_callbacks:
             self.key_callbacks[key]()
-
-
-
-
-
-
-        
-    
-
-    
-    
