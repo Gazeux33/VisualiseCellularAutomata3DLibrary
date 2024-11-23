@@ -2,6 +2,8 @@
 
 This project consists of a library designed for the visualisation of cellular automata, created in Python and using OpenGL. This library allows users to simulate and visualise various cellular automata behaviours in an interactive graphical environment. By taking advantage of OpenGL's rendering capabilities, your tool offers a fluid and detailed visual experience, making it easier to understand and analyse complex cellular automata models.
 
+This tool gives you access to a moving camera environment in which you can easily code your own rules.  
+
 
 ## Example of Using the Library ( see examples folder for more examples): 
 
